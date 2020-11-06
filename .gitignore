@@ -1,0 +1,13 @@
+########################################
+#### IDE specific rules:
+########################################
+.classpath
+.project
+.settings/
+target/
+volume/
+*.iml
+*.idea/
+*.vscode
+*.ipr
+*.iws
