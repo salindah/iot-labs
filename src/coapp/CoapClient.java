@@ -3,6 +3,7 @@ package coapp;
 import com.sun.scenario.effect.impl.sw.sse.SSEBlend_SRC_OUTPeer;
 import java.io.IOException;
 import java.net.*;
+import java.util.Arrays;
 import java.util.Scanner;
 
 public class CoapClient {
@@ -78,7 +79,8 @@ public class CoapClient {
     String uriPath = scanner.nextLine();
     byte[] message = constructMessage(uriPath);
 
-    sendMessage(message);
+    DatagramPacket response = sendMessage(message);
+    decodeResponse(response);
   }
 
   private void handlePostRequest(){
@@ -109,8 +111,6 @@ public class CoapClient {
   private byte[] constructMessage(String uriPath){
     byte[] message = new byte[100];
     addHeader(message, uriPath);
-
-
     return message;
   }
 
@@ -130,10 +130,8 @@ public class CoapClient {
       Integer uriOptionType = new Integer(11);
       String uriOptionTypeStr = addLeadingZeros(Integer.toBinaryString(uriOptionType));
 
-
       Integer pathLength = uriPath.length();
       String uriPathStr = addLeadingZeros(Integer.toBinaryString(pathLength));
-
 
       message[4] = convertToByte(uriOptionTypeStr + uriPathStr).byteValue();
 
@@ -142,60 +140,59 @@ public class CoapClient {
         int index = 5 + i;
         message[index] = (byte) pathArray[i];
       }
-
-      System.out.println(message);
     }
   }
 
-  public void sendMessage(byte[] message) {
-    DatagramPacket packet
-        = new DatagramPacket(message, message.length, address, PORT_NUMBER);
+  public DatagramPacket sendMessage(byte[] message) {
+
+    DatagramPacket request;
+    DatagramPacket response = null;
     try {
 
-      System.out.println(message.length);
-      socket.send(packet);
+      request = new DatagramPacket(message, message.length, address, PORT_NUMBER);
+      socket.send(request);
       System.out.println("Packet send to coap server ...");
 
-      byte[] receivingBuffer = new byte[65535];
-      packet = new DatagramPacket(receivingBuffer, receivingBuffer.length);
-      socket.receive(packet);
-      System.out.println("Response received from the server ...");
-      String received = new String(
-          packet.getData(), 0, packet.getLength());
+      byte[] receivingBuffer = new byte[1000];
+      response = new DatagramPacket(receivingBuffer, receivingBuffer.length);
+      socket.receive(response);
 
-      System.out.println(received);
+      System.out.println("Response received from the server ...");
     } catch (IOException e) {
       e.printStackTrace();
     }
+    return response;
   }
 
-  public byte[] message_GET(String path) {
 
-    sendingBuffer = new byte[10];
-    byte byte1 = (byte) 0b0101_0000;
-    byte byte2 = (byte) 0b0000_0001;
-    byte byte3 = (byte) 0b1010_1010;
-    byte byte4 = (byte) 0b0101_0101;
+  private void decodeResponse(DatagramPacket response){
 
-    sendingBuffer[0] = byte1;
-    sendingBuffer[1] = byte2;
-    sendingBuffer[2] = byte3;
-    sendingBuffer[3] = byte4;
+    byte[] header;
+    byte[] payload;
+    int delimiterIndex = -1;
 
-    if (path != null) {
-      Integer pathLength = path.length();
-      String format = addLeadingZeros(Integer.toBinaryString(pathLength));
-      System.out.println(format);
+    byte[] temp = response.getData();
+    if(response.getData() != null){
 
-      byte[] optionValueByteArray = path.getBytes();
+      for(int i = 0; i < response.getLength(); i++){
+        int val = temp[i];
+        if(val == -1){
+          delimiterIndex = i;
+        }
+      }
+      header = Arrays.copyOfRange(temp, 0, delimiterIndex);
+      payload = Arrays.copyOfRange(temp, delimiterIndex + 1, response.getLength());
 
-//      for(int i = 0; i < optionValueByteArray.length; i++){
-//        System.out.println(optionValueByteArray[i]);
-//      }
+      String headerStr = new String(header, 0, header.length);
+      String payloadStr = new String(payload, 0, payload.length);
+
+      System.out.println("++++++++++ Response ++++++++++++++++");
+      System.out.println("Header : " + headerStr);
+      System.out.println("Payload : " + payloadStr);
     }
-
-    return sendingBuffer;
   }
+
+
 
 
   public String addLeadingZeros(String value) {
@@ -235,21 +232,12 @@ public class CoapClient {
   }
 
 
-  public void testConvert(){
-
-//    System.out.println(  convertTotoByte("10000000") );
-//    System.out.println(  convertTotoByte("10000001") );
-//    System.out.println(  convertTotoByte("10000011") );
-//    System.out.println(  convertTotoByte("10000111") );
-//    System.out.println(  convertTotoByte("10001111") );
-//
-//    System.out.println(  convertTotoByte("10011111") );
-//    System.out.println(  convertTotoByte("10111111") );
-
-      Integer test = convertToByte("01111111");
-      System.out.println(test.byteValue());
-
-
+  public void printByteArray(byte[] array){
+    for(byte b : array){
+      int val = b;
+      System.out.print( val + " ");
+    }
+    System.out.println("");
   }
 
   public void printTest() {

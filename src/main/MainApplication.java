@@ -12,8 +12,6 @@ public class MainApplication {
     //coapClient.addOptions(message, "sink");
 
     coapClient.run();
-
-    //byte[] m_GET = coapClient.message_GET("sink");
-    //coapClient.sendPacket(m_GET);
+    //coapClient.printTest();
   }
 }
