@@ -77,14 +77,24 @@ public class CoapClient {
     System.out.println("Please enter the URI path in the below line:");
     Scanner scanner = new Scanner(System.in);
     String uriPath = scanner.nextLine();
-    byte[] message = constructMessage(uriPath);
+    byte[] message = constructMessage("GET", uriPath);
 
     DatagramPacket response = sendMessage(message);
     decodeResponse(response);
   }
 
   private void handlePostRequest(){
-    System.out.println("POST");
+    System.out.println("Please enter the URI path in the below line:");
+    Scanner scannerPath = new Scanner(System.in);
+    String uriPath = scannerPath.nextLine();
+
+    System.out.println("Please enter payload for the message in the below line:");
+    Scanner scannerPayload = new Scanner(System.in);
+    String payload = scannerPayload.nextLine();
+
+    byte[] message = constructMessage("POST", uriPath, payload);
+    DatagramPacket response = sendMessage(message);
+    decodeResponse(response);
   }
 
   private void handlePutRequest(){
@@ -108,16 +118,22 @@ public class CoapClient {
     return false;
   }
 
-  private byte[] constructMessage(String uriPath){
+  private byte[] constructMessage(String requestType, String uriPath){
     byte[] message = new byte[100];
-    addHeader(message, uriPath);
+    addHeader(message, requestType, uriPath);
     return message;
   }
 
-  private void addHeader(byte[] message, String uriPath){
+  private byte[] constructMessage(String requestType, String uriPath, String payload){
+    byte[] message = new byte[100];
+    addHeader(message, requestType, uriPath);
+    return message;
+  }
+
+  private void addHeader(byte[] message, String requestType, String uriPath){
 
     message[0] = convertToByte("01010000").byteValue();
-    message[1] = convertToByte("00000001").byteValue();
+    message[1] = getByteForRequestType(requestType);
     message[2] = convertToByte("10101010").byteValue();
     message[3] = convertToByte("01010101").byteValue();
 
@@ -141,6 +157,21 @@ public class CoapClient {
         message[index] = (byte) pathArray[i];
       }
     }
+  }
+
+  private byte getByteForRequestType(String type){
+
+    String bitString = "00000000"; // 0.00
+    if("GET".equals(type)){
+      bitString = "00000001"; // 0.01
+    } else if ("POST".equals(type)){
+      bitString = "00000010"; // 0.02
+    } else if ("PUT".equals(type)){
+      bitString = "00000011"; // 0.03
+    } else if ("DELETE".equals(type)){
+      bitString = "00000100"; // 0.04
+    }
+    return convertToByte(bitString).byteValue();
   }
 
   public DatagramPacket sendMessage(byte[] message) {
@@ -187,6 +218,7 @@ public class CoapClient {
       String payloadStr = new String(payload, 0, payload.length);
 
       System.out.println("++++++++++ Response ++++++++++++++++");
+      printByteArray(header);
       System.out.println("Header : " + headerStr);
       System.out.println("Payload : " + payloadStr);
     }
