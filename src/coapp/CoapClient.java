@@ -1,6 +1,5 @@
 package coapp;
 
-import com.sun.scenario.effect.impl.sw.sse.SSEBlend_SRC_OUTPeer;
 import java.io.IOException;
 import java.net.*;
 import java.util.Arrays;
@@ -77,7 +76,7 @@ public class CoapClient {
     System.out.println("Please enter the URI path in the below line:");
     Scanner scanner = new Scanner(System.in);
     String uriPath = scanner.nextLine();
-    byte[] message = constructMessage("GET", uriPath);
+    CoapMessage message = constructMessage("GET", uriPath);
 
     DatagramPacket response = sendMessage(message);
     decodeResponse(response);
@@ -92,17 +91,33 @@ public class CoapClient {
     Scanner scannerPayload = new Scanner(System.in);
     String payload = scannerPayload.nextLine();
 
-    byte[] message = constructMessage("POST", uriPath, payload);
+    CoapMessage message = constructMessage("POST", uriPath, payload);
     DatagramPacket response = sendMessage(message);
     decodeResponse(response);
   }
 
   private void handlePutRequest(){
-    System.out.println("PUT");
+    System.out.println("Please enter the URI path in the below line:");
+    Scanner scannerPath = new Scanner(System.in);
+    String uriPath = scannerPath.nextLine();
+
+    System.out.println("Please enter payload for the message in the below line:");
+    Scanner scannerPayload = new Scanner(System.in);
+    String payload = scannerPayload.nextLine();
+
+    CoapMessage message = constructMessage("PUT", uriPath, payload);
+    DatagramPacket response = sendMessage(message);
+    decodeResponse(response);
   }
 
   private void handleDeleteRequest(){
-    System.out.println("DELETE");
+    System.out.println("Please enter the URI path in the below line:");
+    Scanner scannerPath = new Scanner(System.in);
+    String uriPath = scannerPath.nextLine();
+
+    CoapMessage message = constructMessage("DELETE", uriPath);
+    DatagramPacket response = sendMessage(message);
+    decodeResponse(response);
   }
 
   private void exit(){
@@ -118,29 +133,30 @@ public class CoapClient {
     return false;
   }
 
-  private byte[] constructMessage(String requestType, String uriPath){
-    byte[] message = new byte[100];
+  private CoapMessage constructMessage(String requestType, String uriPath){
+    CoapMessage message = new CoapMessage();
     addHeader(message, requestType, uriPath);
     return message;
   }
 
-  private byte[] constructMessage(String requestType, String uriPath, String payload){
-    byte[] message = new byte[100];
+  private CoapMessage constructMessage(String requestType, String uriPath, String payload){
+    CoapMessage message = new CoapMessage();
     addHeader(message, requestType, uriPath);
+    addPayload(message, payload);
     return message;
   }
 
-  private void addHeader(byte[] message, String requestType, String uriPath){
+  private void addHeader(CoapMessage message, String requestType, String uriPath){
 
-    message[0] = convertToByte("01010000").byteValue();
-    message[1] = getByteForRequestType(requestType);
-    message[2] = convertToByte("10101010").byteValue();
-    message[3] = convertToByte("01010101").byteValue();
+    message.addToBuffer(convertToByte("01010000").byteValue());
+    message.addToBuffer(getByteForRequestType(requestType));
+    message.addToBuffer(convertToByte("10101010").byteValue());
+    message.addToBuffer(convertToByte("01010101").byteValue());
 
     addOptions(message, uriPath);
   }
 
-  public void addOptions(byte[] message, String uriPath ){
+  public void addOptions(CoapMessage message, String uriPath ){
     if(uriPath != null){
 
       Integer uriOptionType = new Integer(11);
@@ -149,13 +165,25 @@ public class CoapClient {
       Integer pathLength = uriPath.length();
       String uriPathStr = addLeadingZeros(Integer.toBinaryString(pathLength));
 
-      message[4] = convertToByte(uriOptionTypeStr + uriPathStr).byteValue();
+      message.addToBuffer(convertToByte(uriOptionTypeStr + uriPathStr).byteValue());
 
       char[] pathArray = uriPath.toCharArray();
       for(int i = 0; i < pathLength; i++ ){
-        int index = 5 + i;
-        message[index] = (byte) pathArray[i];
+        message.addToBuffer((byte) pathArray[i]);
       }
+    }
+  }
+
+  private void addPayload(CoapMessage message, String payload){
+
+    // Add the delimiter.
+    message.addToBuffer(convertToByte("11111111").byteValue());
+
+    // Append the payload.
+    int length = payload.length();
+    char[] payloadArray = payload.toCharArray();
+    for(int i = 0; i < length; i++ ){
+      message.addToBuffer((byte) payloadArray[i]);
     }
   }
 
@@ -174,13 +202,12 @@ public class CoapClient {
     return convertToByte(bitString).byteValue();
   }
 
-  public DatagramPacket sendMessage(byte[] message) {
+  public DatagramPacket sendMessage(CoapMessage coapMessage) {
 
     DatagramPacket request;
     DatagramPacket response = null;
     try {
-
-      request = new DatagramPacket(message, message.length, address, PORT_NUMBER);
+      request = new DatagramPacket(coapMessage.getMessage(), coapMessage.getLength(), address, PORT_NUMBER);
       socket.send(request);
       System.out.println("Packet send to coap server ...");
 
@@ -263,55 +290,14 @@ public class CoapClient {
     return -1;
   }
 
-
   public void printByteArray(byte[] array){
     for(byte b : array){
-      int val = b;
-      System.out.print( val + " ");
+      //String hexaDecimal = String.format("%02X", b);
+      String hexaDecimal = "".format("0x%x", b);
+      System.out.print( hexaDecimal + " ");
+
     }
     System.out.println("");
   }
-
-  public void printTest() {
-
-    byte aByte0 = (byte) 0b10000000;
-    byte aByte1 = (byte) 0b10000001;
-    byte aByte2 = (byte) 0b10000011;
-    byte aByte3 = (byte) 0b10000111;
-    byte aByte4 = (byte) 0b10001111;
-    byte aByte5 = (byte) 0b10011111;
-    byte aByte6 = (byte) 0b10111111;
-    byte aByte7 = (byte) 0b11111111;
-
-    byte aByte00 = (byte) 0b00000000;
-    byte aByte11 = (byte) 0b00000001;
-    byte aByte22 = (byte) 0b00000011;
-    byte aByte33 = (byte) 0b00000111;
-    byte aByte44 = (byte) 0b00001111;
-    byte aByte55 = (byte) 0b00011111;
-    byte aByte66 = (byte) 0b00111111;
-    byte aByte77 = (byte) 0b01111111;
-
-    System.out.println(aByte0);
-    System.out.println(aByte1);
-    System.out.println(aByte2);
-    System.out.println(aByte3);
-    System.out.println(aByte4);
-    System.out.println(aByte5);
-    System.out.println(aByte6);
-    System.out.println(aByte7);
-
-    System.out.println("-----------------------------");
-
-    System.out.println(aByte00);
-    System.out.println(aByte11);
-    System.out.println(aByte22);
-    System.out.println(aByte33);
-    System.out.println(aByte44);
-    System.out.println(aByte55);
-    System.out.println(aByte66);
-    System.out.println(aByte77);
-  }
-
 
 }
