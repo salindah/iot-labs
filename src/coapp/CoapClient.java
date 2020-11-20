@@ -290,6 +290,9 @@ public class CoapClient {
     return -1;
   }
 
+  /*
+  Print the hexadecimal values for a given byte array.
+  * */
   public void printByteArray(byte[] array){
     for(byte b : array){
       //String hexaDecimal = String.format("%02X", b);
