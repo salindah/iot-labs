@@ -303,4 +303,21 @@ public class CoapClient {
     System.out.println("");
   }
 
+  public void printTest(){
+
+    int[] arr = new int[7];
+    arr[0] = 12;
+    arr[1] = 4;
+    arr[2] = 16;
+    arr[3] = 4;
+    arr[4] = 20;
+    arr[5] = 4;
+    arr[6] = 8;
+
+    for(int x : arr){
+      String temp = Integer.toBinaryString(x);
+      System.out.println(temp);
+    }
+  }
+
 }
