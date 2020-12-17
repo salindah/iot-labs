@@ -1,8 +1,6 @@
 package main;
 
-import coapp.CoapClient;
 import mqtt.MqttServer;
-import mqtt.MultiThreadedServer;
 
 public class MainApplication {
 
@@ -13,9 +11,6 @@ public class MainApplication {
 //
     MqttServer mqttServer = new MqttServer();
     mqttServer.start();
-
-    //MultiThreadedServer server = new MultiThreadedServer(1883);
-    //new Thread(server).start();
 
   }
 }
